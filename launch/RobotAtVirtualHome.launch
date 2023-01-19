@@ -9,9 +9,9 @@
     <!--<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>-->
 
     ### FLOORPLAN RECONSTRUCTION ###
-    <node name="sigmafp" pkg="sigmafp" type="fast-sigma-FP.py" output="screen">
+    <node name="sigmafp_modificato" pkg="sigmafp_modificato" type="fast-sigma-FP.py" output="screen">
         <param name="dataset" value="RobotAtVirtualHome"/>
-        <param name="topic_cameraRGB" value="RobotAtVirtualHome/VirtualCameraRGB"/>
+        <param name="topic_cameraRGB" value=" /RobotAtVirtualHome/VirtualCameraRGB/compressed"/>
         <param name="topic_cameraDepth" value="RobotAtVirtualHome/VirtualCameraDepth"/>
         <param name="topic_result" value="ViMantic/Detections"/>
         <param name="topic_republic" value="ViMantic/ToCNN"/>
@@ -36,7 +36,7 @@
     </node>
 
     ### NAVIGATION ###
-    <arg name="map_file" value="$(find sigmafp)/maps/ViMantic_House30.yaml"/>
+    <arg name="map_file" value="$(find sigmafp_modificato)/maps/ViMantic_House30.yaml"/>
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" launch-prefix=""/>
 
     ### RVIZ ###

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(sigmafp)
+project(sigmafp_modificato)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   sensor_msgs
+  feature_extraction
 )
 
 ## System dependencies are found with CMake's conventions
