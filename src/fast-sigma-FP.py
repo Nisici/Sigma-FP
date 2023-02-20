@@ -31,7 +31,9 @@ class FloorplanReconstruction(object):
     def __init__(self):
 
         rospy.logwarn("Initializing Sigma-FP: 3D Floorplan Reconstruction")
-
+        #ADDED
+        #OccupancyGrid map
+        self.occMap = None
         # ROS Parameters
         self.image_rgb_topic = self.load_param('~topic_cameraRGB', "ViMantic/virtualCameraRGB")
         self.image_depth_topic = self.load_param('~topic_cameraDepth', "ViMantic/virtualCameraDepth")
@@ -101,7 +103,16 @@ class FloorplanReconstruction(object):
         rospy.Subscriber(self.cnn_topic, ResultWithWalls, self.callback_new_detection)
         rospy.Subscriber("wallmap_commands", String, self.callback_commands)
         #ADDED
-        rospy.Subscriber("features_ROSE", ROSEFeatures, self.set_main_directions)
+        #rospy.Subscriber("features_ROSE", ROSEFeatures, self.set_main_directions)
+        # get features from service
+        rospy.wait_for_service('features_ROSE')
+        get_features = rospy.ServiceProxy('features_ROSE', ROSEFeatures)
+        try:
+           self.features = get_features(self.occMap)
+           self.set_main_directions(self.features)
+        except rospy.ServiceException as exc:
+           print("Service did not process request: " + str(exc))
+
         if self.dataset == "RobotAtVirtualHome":
             sub_rgb_image = message_filters.Subscriber(self.image_rgb_topic, CompressedImage)
             sub_depth_image = message_filters.Subscriber(self.image_depth_topic, CompressedImage)
@@ -138,16 +149,7 @@ class FloorplanReconstruction(object):
         val = mean_pps[0]
         idx = (np.abs(array - val)).argmin()
         mean_pps[0] = array[idx]
-    def fromMapToRobot(self, mean_pps, global_pps):
-        #fare l'inverso di questo
-        """""
-        global_mean_pps = np.asarray([[((pps_mean[0] - theta))],
-                                      [pi / 2],
-                                      [(pps_mean[-1] + np.linalg.norm(np.asarray([x, y])) * cos(
-                                          (theta + pps_mean[0] - atan2(y, x))))]],
-                                     dtype=np.float64)
-                                     """
-        return True
+
     def run(self):
 
         rate = rospy.Rate(self._publish_rate)
@@ -268,7 +270,6 @@ class FloorplanReconstruction(object):
 
                     # Computing mean and covariance of the cluster
                     mean_pps = np.mean(wall_pps, axis=0).reshape((3, 1))
-                    #self.straightenWalls(mean_pps)
                     cov_pps = np.cov(wall_pps.T)
 
                     # Skipping walls that do not meet the Atlanta world assumption
@@ -277,9 +278,10 @@ class FloorplanReconstruction(object):
 
                     # Changing the reference system of the Gaussian distribution: from robot to world frame
                     mean_global, cov_global = self._pm.pps_from_robot_to_map(self._last_msg[5], mean_pps, cov_pps)
+                    # straighten walls with respect to the global frame
                     if mean_global is not None:
                         self.straightenWalls(mean_global)
-                        mean_pps = self.from_map_to_robot(mean_global)
+
                     # Too much uncertainty in the robot localization... Skipping data
                     if mean_global is None:
                         rospy.logwarn("Bad localization, skipping data...")
