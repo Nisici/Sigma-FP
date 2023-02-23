@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d010ff37-6255-4d8c-9cdb-5afed326bd81" name="Changes" comment="fast-sigma-FP prende le features da ROSE tramite Service.">
-      <change beforePath="$PROJECT_DIR$/src/fast-sigma-FP.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/fast-sigma-FP.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
