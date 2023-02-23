@@ -103,15 +103,8 @@ class FloorplanReconstruction(object):
         rospy.Subscriber(self.cnn_topic, ResultWithWalls, self.callback_new_detection)
         rospy.Subscriber("wallmap_commands", String, self.callback_commands)
         #ADDED
-        #rospy.Subscriber("features_ROSE", ROSEFeatures, self.set_main_directions)
-        # get features from service
-        rospy.wait_for_service('features_ROSE')
-        get_features = rospy.ServiceProxy('features_ROSE', ROSEFeatures)
-        try:
-           self.features = get_features(self.occMap)
-           self.set_main_directions(self.features)
-        except rospy.ServiceException as exc:
-           print("Service did not process request: " + str(exc))
+        rospy.Subscriber("features_ROSE", ROSEFeatures, self.set_main_directions)
+
 
         if self.dataset == "RobotAtVirtualHome":
             sub_rgb_image = message_filters.Subscriber(self.image_rgb_topic, CompressedImage)
@@ -279,7 +272,7 @@ class FloorplanReconstruction(object):
                     # Changing the reference system of the Gaussian distribution: from robot to world frame
                     mean_global, cov_global = self._pm.pps_from_robot_to_map(self._last_msg[5], mean_pps, cov_pps)
                     # straighten walls with respect to the global frame
-                    if mean_global is not None:
+                    if mean_global is not None and self.main_directions is not None:
                         self.straightenWalls(mean_global)
 
                     # Too much uncertainty in the robot localization... Skipping data
