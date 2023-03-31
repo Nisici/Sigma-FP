@@ -34,6 +34,7 @@ class FloorplanReconstruction(object):
         #ADDED
         #OccupancyGrid map
         self.occMap = None
+        self.main_directions = None
         # ROS Parameters
         self.image_rgb_topic = self.load_param('~topic_cameraRGB', "ViMantic/virtualCameraRGB")
         self.image_depth_topic = self.load_param('~topic_cameraDepth', "ViMantic/virtualCameraDepth")
@@ -135,8 +136,7 @@ class FloorplanReconstruction(object):
     ################################################### Node Script ####################################################
     ####################################################################################################################
     def set_main_directions(self, features):
-        self.main_directions = features.directions
-
+        self.main_directions = np.asarray(features.directions)
     def straightenWalls(self, mean_pps):
         val = mean_pps[0]
         print(self.main_directions)
@@ -144,14 +144,16 @@ class FloorplanReconstruction(object):
         idx = (np.abs(self.main_directions - val)).argmin()
         # se la differenza tra la direzione principale e quella del muro è maggiore di 0.5 allora prendo l'angolo esplementare
         if abs(mean_pps[0] - self.main_directions[idx]) > 0.5:
-            if (mean_pps[0] > 0):
-                val = mean_pps[0] - 2 * np.pi
+            if(mean_pps[0] > 0):
+                val = mean_pps[0]  - 2*np.pi
+                print(val)
             else:
-                val = mean_pps[0] + 2 * np.pi
+                val = mean_pps[0] + 2*np.pi
             idx = (np.abs(self.main_directions - val)).argmin()
             mean_pps[0] = self.main_directions[idx]
         else:
             mean_pps[0] = self.main_directions[idx]
+        print(mean_pps[0])
 
     def run(self):
 
@@ -160,7 +162,6 @@ class FloorplanReconstruction(object):
         while not rospy.is_shutdown():
             # Extracting and projecting detected walls
             if self._flag_processing and self._flag_cnn:
-
                 # Getting the mask of pixels belonging to walls
                 try:
                     wall_mask = self._bridge.imgmsg_to_cv2(self._last_cnn_result.walls) == 255
@@ -281,15 +282,14 @@ class FloorplanReconstruction(object):
 
                     # Changing the reference system of the Gaussian distribution: from robot to world frame
                     mean_global, cov_global = self._pm.pps_from_robot_to_map(self._last_msg[5], mean_pps, cov_pps)
-                    # straighten walls with respect to the global frame
-                    if mean_global is not None and self.main_directions is not None:
-                        self.straightenWalls(mean_global)
 
                     # Too much uncertainty in the robot localization... Skipping data
                     if mean_global is None:
                         rospy.logwarn("Bad localization, skipping data...")
                         continue
-
+                    # straighten walls with respect to the global frame
+                    if mean_global is not None and self.main_directions is not None:
+                        self.straightenWalls(mean_global)
                     # Creating a dictionary with the characterization of the wall
                     wall_dict = {"mean": mean_global.reshape((3,)), "cov": cov_global}
 
@@ -344,6 +344,7 @@ class FloorplanReconstruction(object):
                 self._walls = new_walls
 
                 # Showing current floorplan
+                #new walls
                 self._walls_pub.publish(self._pm.create_msg_walls_markers(self._walls))
 
                 # Print time information
@@ -384,7 +385,6 @@ class FloorplanReconstruction(object):
 
     def callback_synchronize_image(self, depth_msg, rgb_msg, pose_msg):
         if not self._flag_processing:
-
             if self.dataset == "RobotAtVirtualHome":
                 img_rgb = self.decode_image_rgb_from_unity(rgb_msg.data)
                 img_depth = self.decode_image_depth_from_unity(depth_msg.data)
@@ -469,7 +469,6 @@ class FloorplanReconstruction(object):
             if (self._image_counter % 11) == 10:
                 rospy.loginfo("Images detected per second=%.2f",
                               float(self._image_counter) / (time.time() - self._start_time))
-
             if len(result_cnn.class_names) > 0 or np.max(np.max(self._bridge.imgmsg_to_cv2(result_cnn.walls))) > 0:
                 self._last_cnn_result = result_cnn
                 self._flag_cnn = True
@@ -484,7 +483,7 @@ class FloorplanReconstruction(object):
         command = data.data
 
         if not os.path.exists(command) or command[0] != '/':
-            command = "/home/jose/Escritorio/"
+            #command = "/home/jose/Escritorio/"
 
             # Another clustering approach
             order, plane_features = self._pm.plane_dict_to_features_comp(self._walls)
