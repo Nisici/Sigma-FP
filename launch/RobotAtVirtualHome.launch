@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-
+    <!-- da aggiungere -->
+    <!-- rosrun image_transport republish compressed in:=RobotAtVirtualHome/VirtualCameraRGB raw out:=decompressedRGB-->
     <arg name="amcl" default="n"/>  ### y (Yes), n (No)
 
     <remap from="/RobotAtVirtualHome/scan" to="scan"/>
-
+    ###IMAGE_TRANSPORT ###
+    <node name="republish" type="republish" pkg="image_transport" output="screen" args="compressed in:=RobotAtVirtualHome/VirtualCameraRGB raw out:=decompressedRGB" />
     ### ROSBRIDGE ###
     <!--<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>-->
 
@@ -12,7 +14,7 @@
     <node name="sigmafp_modificato" pkg="sigmafp_modificato" type="fast-sigma-FP.py" output="screen">
         <param name="dataset" value="RobotAtVirtualHome"/>
         <param name="topic_cameraRGB" value=" /RobotAtVirtualHome/VirtualCameraRGB/compressed"/>
-        <param name="topic_cameraDepth" value="RobotAtVirtualHome/VirtualCameraDepth"/>
+        <param name="topic_cameraDepth" value="RobotAtVirtualHome/VirtualCameraDepth/"/>
         <param name="topic_result" value="ViMantic/Detections"/>
         <param name="topic_republic" value="ViMantic/ToCNN"/>
         <param name="topic_cnn" value="detectron2_ros/result"/>
@@ -36,7 +38,8 @@
     </node>
 
     ### NAVIGATION ###
-    <arg name="map_file" value="$(find sigmafp_modificato)/maps/ViMantic_House30.yaml"/>
+
+    <arg name="map_file" value="$(find sigmafp_modificato)/maps/ViMantic_House20.yaml"/>
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" launch-prefix=""/>
 
     ### RVIZ ###

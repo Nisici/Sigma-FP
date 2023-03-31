@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <!-- da aggiungere -->
+    <!-- rosrun image_transport republish raw in:=camera_down/rgb/image_raw compressed out:=camera_down/rgb/image_raw/ -->
+    <arg name="amcl" default="n"/>  ### y (Yes), n (No)
+    ### IMAGE_TRANSPORT ###
+     <node name="republish" type="republish" pkg="image_transport" output="screen" args="raw in:=camera_down/rgb/image_raw compressed out:=camera_down/rgb/image_raw/ " />
+
+    ### ROSBRIDGE ###
+    <!--<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>-->
+
+    ### FLOORPLAN RECONSTRUCTION ###
+    <node name="sigmafp_modificato" pkg="sigmafp_modificato" type="fast-sigma-FP.py" output="screen">
+        <param name="dataset" value="Giraff"/>
+        <param name="topic_cameraRGB" value="camera_down/rgb/image_raw/compressed"/>
+        <param name="topic_cameraDepth" value="camera_down/depth_registered/image_raw"/>
+        <param name="topic_result" value="ViMantic/Detections"/>
+        <param name="topic_republic" value="ViMantic/ToCNN"/>
+        <param name="topic_cnn" value="detectron2_ros/result"/>
+        <param name="debug" value="true"/>
+        <param name="image_width" value="320"/>
+        <param name="image_height" value="240"/>
+        <param name="camera_cx" value="159.5"/>
+        <param name="camera_cy" value="119.5"/>
+        <param name="camera_fx" value="285.17026"/>
+        <param name="camera_depth_max_range" value="10.0"/>
+        <param name="points_in_pcd" value="4000"/>
+        <param name="min_points_plane" value="100"/>
+        <param name="min_plane_width" value="0.8"/>
+        <param name="min_px_opening" value="5000"/>
+        <param name="bhattacharyya_threshold" value="15"/>
+        <param name="euclidean_threshold" value="0.3"/>
+        <param name="eps_alpha" value="10.0"/>
+        <param name="eps_beta" value="5.0"/>
+        <param name="eps_dist" value="0.02"/>
+    </node>
+     <arg name="launch_prefix" default="" />
+
+    ###MAP
+    <arg name="map_file" value="/root/catkin_ws/src/Sigma-FP-Modificato/maps/piano_4_dip_inf.yaml"/>
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" launch-prefix=""/>
+
+     ### AMCL ###
+ <group if="$(eval arg('amcl') == 'y')">
+  <node pkg="amcl" type="amcl" name="amcl" launch-prefix="$(arg launch_prefix)">
+    ### Initial pose
+    <param name="initial_pose_x" value="-2.5"/>         #m
+    <param name="initial_pose_y" value="-4.0"/>        #m
+    <param name="initial_pose_a" value="0.0"/>     #rad
+
+    ### Filter params
+    <param name="min_particles" value="100"/>   #200
+    <param name="max_particles" value="1000"/>
+    <param name="update_min_d" value="0.1"/>    ### Translational movement required before performing a filter update.
+    <param name="update_min_a" value="0.1"/>    ### Rotational movement required before performing a filter update. (rad)
+    <param name="resample_interval" value="1"/>
+    <param name="transform_tolerance" value="0.2"/> #0.2
+    <param name="recovery_alpha_slow" value="0.001"/> #0.001
+    <param name="recovery_alpha_fast" value="0.1"/> #0.1
+    <param name="gui_publish_rate" value="-1.0"/>   ### 10 Maximum rate (Hz) at which scans and paths are published for visualization, -1.0 to disable.
+
+
+    ### Laser model (and noise)
+    <param name="laser_model_type" value="likelihood_field"/>   ###The likelihood_field model uses only: z_hit and z_rand.
+    <param name="laser_z_hit" value="0.8"/>                     # [0.5 , 0.9]
+    <param name="laser_sigma_hit" value="0.1"/>
+    <param name="laser_z_rand" value="0.5"/>
+    <param name="laser_z_short" value="0.05"/>
+    <param name="laser_z_max" value="0.05"/>
+    <param name="laser_likelihood_max_dist" value="4.0"/>
+
+    ### Odometry model (and noise)
+    <param name="odom_model_type" value="diff"/>
+    <param name="kld_err" value="0.05"/>         # [0.05 , 0.1]
+    <param name="kld_z" value="0.8"/>            # [0.5 , 0.99]
+    <param name="odom_alpha1" value="0.15"/>     ### expected noise in odometry's rotation estimate from the rotational component
+    <param name="odom_alpha2" value="0.15"/>     ### expected noise in odometry's rotation estimate from the translational component
+    <param name="odom_alpha3" value="0.15"/>     ### expected noise in odometry's translation estimate from the translational component
+    <param name="odom_alpha4" value="0.15"/>     ### expected noise in odometry's translation estimate from the rotational component
+    <param name="odom_alpha5" value="0.1"/>      ### Translation-related noise parameter (only used if model is "omni").
+    <param name="odom_frame_id" value="odom_giraff"/>
+    <param name="base_frame_id" value="base_link"/>
+    <param name="global_frame_id" value="map"/>
+    <param name="tf_broadcast" value="true"/>
+  </node>
+  </group>
+
+</launch>
